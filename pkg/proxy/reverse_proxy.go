@@ -34,7 +34,13 @@ func NewBalancedReverseProxy(def *Definition, balancer balancer.Balancer, statsC
 func createDirector(proxyDefinition *Definition, balancer balancer.Balancer, statsClient client.Client) func(req *http.Request) {
 	paramNameExtractor := router.NewListenPathParamNameExtractor()
 	matcher := router.NewListenPathMatcher()
+
 	balancers := proxyDefinition.Upstreams.Targets.ToBalancerTargets()
+
+	balanceParameters := make(map[string][]string)
+	for _, b := range balancers {
+		balanceParameters[b.Target] = paramNameExtractor.Extract(b.Target)
+	}
 
 	return func(req *http.Request) {
 		upstream, err := balancer.Elect(balancers)
@@ -44,8 +50,8 @@ func createDirector(proxyDefinition *Definition, balancer balancer.Balancer, sta
 		}
 
 		targetURL := upstream.Target
+		paramNames := balanceParameters[targetURL]
 
-		paramNames := paramNameExtractor.Extract(targetURL)
 		parametrizedPath, err := applyParameters(req, targetURL, paramNames)
 		if err != nil {
 			log.WithError(err).Warn("Unable to extract param from request")
