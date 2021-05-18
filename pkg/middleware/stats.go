@@ -39,6 +39,7 @@ func (m *Stats) Handler(handler http.Handler) http.Handler {
 			log.WithField("path", r.URL.Path).Warn("Unknown endpoint requested")
 			r.URL.Path = notFoundPath
 		}
+		m.statsClient.TrackRequest(r, t, success)
 
 		m.statsClient.SetHTTPRequestSection(statsSectionRoundTrip).
 			TrackRequest(r, t, success).
